@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScribeMind — AI Writing & Study Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #0f0e0c; --paper: #faf8f4; --cream: #f0ece2;
+    --gold: #c9a84c; --gold-light: #e8d5a3; --muted: #7a7670;
+    --accent: #2d4a3e; --accent-light: #e8f0ec; --border: #ddd9d0; --radius: 12px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--paper); position: sticky; top: 0; z-index: 10; }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+  .logo-dot { color: var(--gold); }
+  .badge-free { font-size: 11px; font-weight: 500; background: var(--gold-light); color: #7a5c00; padding: 3px 10px; border-radius: 20px; }
+  .hero { text-align: center; padding: 3rem 1.5rem 2rem; background: linear-gradient(180deg, var(--cream) 0%, var(--paper) 100%); }
+  .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 700; line-height: 1.2; margin-bottom: 0.75rem; }
+  .hero h1 em { color: var(--gold); font-style: normal; }
+  .hero p { color: var(--muted); font-size: 1rem; max-width: 480px; margin: 0 auto 1.5rem; line-height: 1.6; font-weight: 300; }
+  .modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 0 1rem 1.5rem; }
+  .mode-btn { padding: 8px 18px; border-radius: 30px; border: 1.5px solid var(--border); background: white; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); transition: all 0.2s; }
+  .mode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .mode-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+  .workspace { flex: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+  .prompt-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .prompt-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--cream); }
+  .mode-label { font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-light); padding: 3px 10px; border-radius: 20px; }
+  .prompt-hint { font-size: 12px; color: var(--muted); }
+  textarea { width: 100%; min-height: 130px; padding: 16px; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.7; color: var(--ink); background: white; resize: vertical; }
+  textarea::placeholder { color: #bbb; }
+  .prompt-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--cream); gap: 10px; flex-wrap: wrap; }
+  .tone-select { font-family: 'DM Sans', sans-serif; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: white; color: var(--ink); outline: none; cursor: pointer; }
+  .run-btn { padding: 9px 22px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; gap: 6px; }
+  .run-btn:hover { opacity: 0.88; }
+  .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .output-card { margin-top: 1rem; background: white; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04); display: none; }
+  .output-card.visible { display: block; }
+  .output-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--cream); }
+  .output-label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .copy-btn { font-size: 12px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 6px; background: white; cursor: pointer; color: var(--muted); font-family: 'DM Sans', sans-serif; }
+  .output-body { padding: 18px; font-size: 15px; line-height: 1.75; color: var(--ink); white-space: pre-wrap; min-height: 80px; }
+  .loading-dots { display: flex; gap: 5px; align-items: center; padding: 18px; }
+  .loading-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); animation: pulse 1.2s ease-in-out infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+  .examples { margin-top: 1.25rem; }
+  .examples-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+  .example-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { font-size: 12px; padding: 6px 13px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; color: var(--muted); background: white; font-family: 'DM Sans', sans-serif; }
+  .chip:hover { border-color: var(--gold); color: var(--accent); }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+  .feature { text-align: center; padding: 1rem 0.5rem; }
+  .feature-icon { font-size: 22px; margin-bottom: 6px; }
+  .feature h4 { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .feature p { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  footer { text-align: center; padding: 1.5rem; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  footer a { color: var(--gold); text-decoration: none; }
+  .error-msg { color: #c0392b; font-size: 13px; padding: 12px 18px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Scribe<span class="logo-dot">Mind</span></div>
+  <span class="badge-free">Free to use</span>
+</header>
+<div class="hero">
+  <h1>Write better.<br>Study <em>smarter.</em></h1>
+  <p>Your AI-powered assistant for essays, emails, summaries, study notes, and more. Free for everyone.</p>
+</div>
+<div class="modes">
+  <button class="mode-btn active" data-mode="essay">✍️ Essay writing</button>
+  <button class="mode-btn" data-mode="grammar">📝 Fix my grammar</button>
+  <button class="mode-btn" data-mode="summarize">📄 Summarize</button>
+  <button class="mode-btn" data-mode="study">🎓 Study notes</button>
+  <button class="mode-btn" data-mode="email">📧 Write an email</button>
+  <button class="mode-btn" data-mode="cv">💼 Polish my CV</button>
+</div>
+<div class="workspace">
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <span class="mode-label" id="mode-label">Essay writing</span>
+      <span class="prompt-hint" id="prompt-hint">Describe your topic or paste your draft</span>
+    </div>
+    <textarea id="user-input" placeholder="e.g. Write an essay about the causes of World War I..."></textarea>
+    <div class="prompt-footer">
+      <select class="tone-select" id="tone-select">
+        <option value="academic">Academic tone</option>
+        <option value="professional">Professional</option>
+        <option value="simple">Simple & clear</option>
+        <option value="creative">Creative</option>
+        <option value="formal">Formal</option>
+      </select>
+      <button class="run-btn" id="run-btn"><span>✨</span> Generate</button>
+    </div>
+  </div>
+  <div class="examples">
+    <div class="examples-label">Try an example →</div>
+    <div class="example-chips" id="example-chips"></div>
+  </div>
+  <div class="output-card" id="output-card">
+    <div class="output-header">
+      <span class="output-label">Your result</span>
+      <button class="copy-btn" id="copy-btn">Copy</button>
+    </div>
+    <div id="output-body"></div>
+  </div>
+  <div class="features">
+    <div class="feature"><div class="feature-icon">⚡</div><h4>Instant results</h4><p>High quality writing in seconds</p></div>
+    <div class="feature"><div class="feature-icon">🌍</div><h4>Works worldwide</h4><p>Students and professionals everywhere</p></div>
+    <div class="feature"><div class="feature-icon">🔒</div><h4>Private</h4><p>Your text is never stored</p></div>
+    <div class="feature"><div class="feature-icon">📱</div><h4>Mobile friendly</h4><p>Works great on any device</p></div>
+  </div>
+</div>
+<footer>Built with ❤️ · <a href="#">Share ScribeMind</a> · Free forever for students</footer>
+<script>
+const modes = {
+  essay: { label: "Essay writing", hint: "Describe your topic or paste your draft", placeholder: "e.g. Write an essay about the causes of World War I...", examples: ["Causes of climate change", "Impact of social media on youth", "Benefits of reading books"], system: "You are an expert essay writer. Write a well-structured, compelling essay. Include an introduction, body paragraphs, and a conclusion. Match the requested tone." },
+  grammar: { label: "Fix my grammar", hint: "Paste any text and get it corrected", placeholder: "Paste your paragraph, assignment or email here...", examples: ["Fix: I has went to the market", "Fix my WhatsApp message", "Improve this paragraph"], system: "You are a professional editor. Correct grammar, spelling, punctuation and improve clarity. Show the corrected version and briefly note the main changes." },
+  summarize: { label: "Summarize", hint: "Paste any text to get a clear summary", placeholder: "Paste an article, chapter, or long text here...", examples: ["Summarize a news article", "TLDR of this chapter", "Key points only"], system: "You are a precise summarizer. Give a clear, well-structured summary. Use bullet points for key points. Be concise but complete." },
+  study: { label: "Study notes", hint: "Paste your topic or chapter text", placeholder: "e.g. Paste your textbook chapter or type a topic like Photosynthesis...", examples: ["Notes on photosynthesis", "WAEC Economics summary", "Key terms for biology"], system: "You are a study coach. Create clear, well-organized study notes. Include key definitions, important points, and memorable tips. Format for easy review." },
+  email: { label: "Write an email", hint: "Describe what you need to say", placeholder: "e.g. Write a professional email to my lecturer asking for an extension...", examples: ["Email to request a job", "Apology email to a client", "Follow-up after interview"], system: "You are a professional email writer. Write a clear, appropriate email. Include subject line and proper greeting/sign-off." },
+  cv: { label: "Polish my CV", hint: "Paste your CV text or describe your experience", placeholder: "e.g. Paste your current CV or describe your work experience...", examples: ["Improve this job description", "Make my CV sound more professional", "Write a summary for my CV"], system: "You are a professional CV writer. Improve and polish the CV content to sound professional and results-focused. Use strong action verbs." }
+};
+
+let currentMode = 'essay';
+
+function setMode(mode) {
+  currentMode = mode;
+  const m = modes[mode];
+  document.getElementById('mode-label').textContent = m.label;
+  document.getElementById('prompt-hint').textContent = m.hint;
+  document.getElementById('user-input').placeholder = m.placeholder;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  renderChips(m.examples);
+  document.getElementById('output-card').classList.remove('visible');
+}
+
+function renderChips(examples) {
+  document.getElementById('example-chips').innerHTML = examples.map(e => `<button class="chip" onclick="useExample(this)">${e}</button>`).join('');
+}
+
+function useExample(el) { document.getElementById('user-input').value = el.textContent; }
+
+document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+document.getElementById('run-btn').addEventListener('click', async () => {
+  const input = document.getElementById('user-input').value.trim();
+  if (!input) { alert('Please enter some text first.'); return; }
+  const tone = document.getElementById('tone-select').value;
+  const btn = document.getElementById('run-btn');
+  const outputCard = document.getElementById('output-card');
+  const outputBody = document.getElementById('output-body');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Working...';
+  outputCard.classList.add('visible');
+  outputBody.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  const m = modes[currentMode];
+  try {
+    const res = await fetch("https://scribemind-backend.onrender.com/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: m.system + ` Tone: ${tone}.`, messages: [{ role: "user", content: input }] })
+    });
+    const data = await res.json();
+    if (data.content && data.content[0]) {
+      const text = data.content.map(b => b.text || '').join('\n');
+      outputBody.innerHTML = `<div class="output-body">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`;
+    } else {
+      outputBody.innerHTML = '<p class="error-msg">Something went wrong. Please try again.</p>';
+    }
+  } catch(e) {
+    outputBody.innerHTML = '<p class="error-msg">Could not connect. Please check your internet and try again.</p>';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<span>✨</span> Generate';
+});
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const text = document.getElementById('output-body').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+});
+
+setMode('essay');
+</script>
+</body>
+    </html>
