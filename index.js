@@ -25,4 +25,12 @@ app.post('/generate', async (req, res) => {
 
 app.get('/', (req, res) => res.send('ScribeMind backend is running!'));
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Server running on port ' + PORT));
+
+// Keep alive ping every 14 minutes
+setInterval(() => {
+  fetch('https://scribemind-backend.onrender.com/')
+    .then(() => console.log('Kept alive'))
+    .catch(() => console.log('Ping failed'));
+}, 14 * 60 * 1000);
